@@ -1,0 +1,1106 @@
+🏬 Mall Tycoon - Tam Sürüm
+
+Sana tek dosyalık komple oyunu hazırlıyorum. Aşağıdaki kodu index.html olarak kaydet (ya da ben sana dosyayı oluşturayım — ama tarayıcıda çalıştırmak için tek dosya yeterli).
+
+📄 index.html (Tamamı)
+
+```html
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Mall Tycoon Deluxe 🏬</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    background: #000;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* === GÖKYÜZÜ / GECE-GÜNDÜZ === */
+  #sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #87ceeb 0%, #b0e0e6 60%, #e0f6ff 100%);
+    transition: background 3s ease;
+    z-index: 0;
+  }
+  #sky.night {
+    background: linear-gradient(180deg, #0a0a2e 0%, #1a1a4e 60%, #2a2a5e 100%);
+  }
+  #sunMoon {
+    position: absolute;
+    top: 5%;
+    left: 10%;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffeb3b, #ff9800);
+    box-shadow: 0 0 40px #ffeb3b;
+    transition: all 3s ease;
+    z-index: 1;
+  }
+  #sunMoon.moon {
+    background: radial-gradient(circle, #f0f0f0, #888);
+    box-shadow: 0 0 30px #fff;
+    left: 75%;
+  }
+  .star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 3s;
+    z-index: 1;
+  }
+  #sky.night .star { opacity: 1; }
+  
+  /* === MALL BİNASI === */
+  #mall {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 82%;
+    z-index: 5;
+  }
+  .floor {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    border-top: 4px solid #444;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.3);
+  }
+  #floor1 { bottom: 0; background: #3a3a4e; }
+  #floor2 { top: 0; background: #4a4a5e; }
+  #floor2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(180deg, #666, #444);
+  }
+  
+  .floor-label {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background: rgba(0,0,0,0.7);
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #fff;
+    z-index: 10;
+  }
+  
+  /* === MAĞAZALAR === */
+  .store {
+    position: absolute;
+    width: 80px;
+    height: 105px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid rgba(255,255,255,0.15);
+    z-index: 6;
+  }
+  .store:hover { transform: scale(1.08) translateY(-3px); box-shadow: 0 5px 20px rgba(255,215,0,0.4); }
+  .store .icon { font-size: 28px; margin-bottom: 2px; }
+  .store.locked {
+    background: linear-gradient(180deg, #1a1a2a, #0a0a1a);
+    border: 2px dashed #555;
+    color: #777;
+  }
+  .store.owned {
+    box-shadow: 0 0 15px rgba(255,215,0,0.3);
+  }
+  .store .store-name { font-weight: bold; font-size: 10px; text-align: center; line-height: 1; }
+  .store .price { margin-top: 3px; font-weight: bold; font-size: 10px; }
+  .store .level-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ffd700;
+    color: #000;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 2px solid #fff;
+  }
+  
+  /* === ASANSÖR === */
+  #elevatorShaft {
+    position: absolute;
+    left: 15px;
+    top: 0;
+    width: 75px;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    border-left: 3px solid #888;
+    border-right: 3px solid #888;
+    z-index: 7;
+    overflow: hidden;
+  }
+  #elevatorShaft::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: repeating-linear-gradient(180deg, #666 0, #666 10px, transparent 10px, transparent 20px);
+    transform: translateX(-50%);
+  }
+  #elevatorCar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 65px;
+    height: 90px;
+    background: linear-gradient(180deg, #aaa, #666);
+    border-radius: 6px;
+    transition: bottom 1.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 0 15px rgba(255,215,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border: 2px solid #888;
+    z-index: 8;
+  }
+  #elevatorCar::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 2px;
+    bottom: 2px;
+    border: 1px dashed rgba(255,255,255,0.3);
+    border-radius: 4px;
+  }
+  .elevator-btn {
+    position: absolute;
+    left: 95px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ff5555, #cc2222);
+    border: 3px solid #fff;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 16px;
+    z-index: 10;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+    transition: 0.2s;
+  }
+  .elevator-btn:hover:not(:disabled) { transform: scale(1.1); }
+  .elevator-btn:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+  #btnUp { bottom: 47%; }
+  #btnDown { top: 47%; }
+  
+  /* === NPC MÜŞTERİLER === */
+  .npc {
+    position: absolute;
+    width: 22px;
+    height: 32px;
+    z-index: 4;
+    pointer-events: none;
+    transition: all 0.5s linear;
+  }
+  .npc .head {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    margin: 0 auto;
+    border: 2px solid rgba(0,0,0,0.3);
+  }
+  .npc .body {
+    width: 14px;
+    height: 14px;
+    margin: 1px auto 0;
+    border-radius: 4px;
+    border: 2px solid rgba(0,0,0,0.2);
+  }
+  .npc .feet {
+    display: flex;
+    justify-content: space-between;
+    width: 18px;
+    margin: 0 auto;
+  }
+  .npc .feet div {
+    width: 5px;
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+  }
+  
+  /* === HUD === */
+  #hud {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0,0,0,0.85);
+    padding: 15px 25px;
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+    font-size: 16px;
+    z-index: 100;
+    text-align: right;
+    backdrop-filter: blur(10px);
+    min-width: 180px;
+  }
+  #hud .label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+  #hud .money { color: #ffd700; font-weight: bold; font-size: 24px; margin-bottom: 4px; }
+  #hud .income { color: #4aff4a; font-size: 13px; font-weight: bold; }
+  #hud .daytime { color: #aaddff; font-size: 12px; margin-top: 4px; }
+  
+  /* === GÖREVLER PANELİ === */
+  #quests {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: rgba(0,0,0,0.85);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 2px solid #4aff4a;
+    font-size: 13px;
+    z-index: 100;
+    min-width: 240px;
+    backdrop-filter: blur(10px);
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  #quests h3 { color: #4aff4a; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px; }
+  .quest {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px;
+    color: #ddd;
+  }
+  .quest:last-child { border: none; }
+  .quest.done { color: #4aff4a; text-decoration: line-through; opacity: 0.6; }
+  .quest .progress-bar {
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .quest .progress-bar div {
+    height: 100%;
+    background: linear-gradient(90deg, #4aff4a, #00ff88);
+    transition: width 0.3s;
+  }
+  
+  /* === BAŞARIMLAR PANELİ === */
+  #achievements {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    padding: 8px 15px;
+    border-radius: 25px;
+    z-index: 100;
+    display: flex;
+    gap: 8px;
+    font-size: 20px;
+    border: 2px solid #ffd700;
+  }
+  .ach-badge {
+    opacity: 0.3;
+    transition: 0.3s;
+    filter: grayscale(1);
+  }
+  .ach-badge.unlocked {
+    opacity: 1;
+    filter: grayscale(0);
+    text-shadow: 0 0 10px #ffd700;
+    animation: pulse 1s ease;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+  
+  /* === BİLDİRİM === */
+  #notif {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: rgba(0,0,0,0.95);
+    padding: 18px 35px;
+    border-radius: 12px;
+    border: 2px solid #ffd700;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 200;
+    transition: transform 0.3s;
+    text-align: center;
+    pointer-events: none;
+  }
+  #notif.show { transform: translate(-50%, -50%) scale(1); }
+  
+  /* === ALT PANEL === */
+  #bottomBar {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+  }
+  .btn {
+    padding: 12px 22px;
+    background: linear-gradient(180deg, #ffd700, #ff9500);
+    color: #000;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+    box-shadow: 0 4px 15px rgba(255,215,0,0.4);
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(255,215,0,0.6); }
+  .btn:disabled { background: #555; color: #888; cursor: not-allowed; opacity: 0.6; }
+  .btn.danger { background: linear-gradient(180deg, #ff6666, #cc2222); }
+  
+  /* === COIN ANİMASYON === */
+  .coin-fly {
+    position: absolute;
+    font-size: 26px;
+    z-index: 150;
+    pointer-events: none;
+    animation: flyUp 1.2s ease-out forwards;
+  }
+  @keyframes flyUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-120px) scale(0.5); opacity: 0; }
+  }
+  
+  /* === SES KONTROL === */
+  #soundBtn {
+    position: absolute;
+    top: 15px;
+    right: 220px;
+    width: 45px;
+    height: 45px;
+    background: rgba(0,0,0,0.8);
+    border: 2px solid #ffd700;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 100;
+  }
+  
+  /* === MAĞAZA SEÇİM MODALI === */
+  #storeModal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    backdrop-filter: blur(5px);
+  }
+  #storeModal.show { display: flex; }
+  .modal-content {
+    background: linear-gradient(180deg, #2a2a3e, #1a1a2e);
+    padding: 30px;
+    border-radius: 20px;
+    border: 3px solid #ffd700;
+    max-width: 600px;
+    text-align: center;
+  }
+  .modal-content h2 { color: #ffd700; margin-bottom: 20px; font-size: 24px; }
+  .store-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .store-option {
+    padding: 15px;
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .store-option:hover {
+    border-color: #ffd700;
+    transform: scale(1.05);
+    background: #444;
+  }
+  .store-option .so-icon { font-size: 32px; }
+  .store-option .so-name { font-size: 12px; font-weight: bold; margin: 4px 0; }
+  .store-option .so-price { font-size: 11px; color: #ffd700; font-weight: bold; }
+  .store-option .so-income { font-size: 10px; color: #4aff4a; }
+  .store-option:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <!-- Gökyüzü -->
+  <div id="sky"></div>
+  <div id="sunMoon"></div>
+  
+  <!-- Mall -->
+  <div id="mall">
+    <div class="floor" id="floor2">
+      <div class="floor-label">🏢 2. KAT - Lüks Mağazalar</div>
+    </div>
+    <div class="floor" id="floor1">
+      <div class="floor-label">🏢 1. KAT - Zemin</div>
+    </div>
+    
+    <!-- Asansör -->
+    <div id="elevatorShaft">
+      <div id="elevatorCar">🧍</div>
+    </div>
+    <button class="elevator-btn" id="btnUp" title="Yukarı">▲</button>
+    <button class="elevator-btn" id="btnDown" title="Aşağı" disabled>▼</button>
+  </div>
+  
+  <!-- HUD -->
+  <div id="hud">
+    <div class="label">Para</div>
+    <div class="money" id="money">$100</div>
+    <div class="income" id="income">+$0/sn</div>
+    <div class="daytime" id="daytime">☀️ Gündüz</div>
+  </div>
+  
+  <button id="soundBtn" title="Ses">🔊</button>
+  
+  <!-- Görevler -->
+  <div id="quests">
+    <h3>📋 GÖREVLER</h3>
+    <div id="questList"></div>
+  </div>
+  
+  <!-- Başarımlar -->
+  <div id="achievements"></div>
+  
+  <!-- Bildirim -->
+  <div id="notif"></div>
+  
+  <!-- Alt bar -->
+  <div id="bottomBar">
+    <button class="btn" id="collectBtn">💵 Gelir Topla</button>
+    <button class="btn" id="upgradeBtn" disabled>⬆️ Yükselt</button>
+  </div>
+  
+  <!-- Mağaza seçim modalı -->
+  <div id="storeModal">
+    <div class="modal-content">
+      <h2>🏬 Hangi Mağazayı Açacaksın?</h2>
+      <div class="store-options" id="storeOptions"></div>
+      <button class="btn" id="closeModal" style="background:linear-gradient(180deg,#666,#444);color:#fff;border-color:#888">İptal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// === SES SİSTEMİ (Web Audio API - dosyasız) ===
+// ============================================================
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new AudioContext();
+}
+
+function playSound(freq, duration, type = 'sine', volume = 0.15) {
+  if (!soundEnabled) return;
+  try {
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch(e) {}
+}
+
+// Ses kütüphanesi
+const Sounds = {
+  buy: () => { playSound(523, 0.1, 'square', 0.1); setTimeout(() => playSound(659, 0.1, 'square', 0.1), 80); setTimeout(() => playSound(784, 0.15, 'square', 0.1), 160); },
+  click: () => playSound(400, 0.05, 'sine', 0.08),
+  upgrade: () => { playSound(523, 0.1, 'triangle'); setTimeout(() => playSound(659, 0.1, 'triangle'), 60); setTimeout(() => playSound(880, 0.2, 'triangle'), 130); },
+  collect: () => { playSound(880, 0.08, 'square', 0.08); setTimeout(() => playSound(1175, 0.1, 'square', 0.08), 60); },
+  error: () => playSound(150, 0.25, 'sawtooth', 0.1),
+  elevator: () => { playSound(200, 0.15, 'sine', 0.1); setTimeout(() => playSound(250, 0.15, 'sine', 0.1), 200); setTimeout(() => playSound(300, 0.2, 'sine', 0.1), 400); },
+  achievement: () => { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => playSound(f, 0.2, 'triangle', 0.12), i * 100)); },
+  quest: () => { [659, 784, 988].forEach((f, i) => setTimeout(() => playSound(f, 0.15, 'sine', 0.1), i * 80)); },
+  night: () => { playSound(440, 0.3, 'sine', 0.08); setTimeout(() => playSound(330, 0.4, 'sine', 0.08), 200); },
+  day: () => { playSound(330, 0.3, 'sine', 0.08); setTimeout(() => playSound(440, 0.4, 'sine', 0.08), 200); }
+};
+
+document.getElementById('soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundBtn').textContent = soundEnabled ? '🔊' : '🔇';
+});
+
+// İlk tıklamada sesi başlat (tarayıcı politikası)
+document.body.addEventListener('click', initAudio, { once: true });
+
+// ============================================================
+// === OYUN DURUMU ===
+// ============================================================
+const state = {
+  money: 100,
+  totalEarned: 0,
+  floor: 1,
+  stores: [],
+  currentStore: null,
+  incomePerSec: 0,
+  accumulated: 0,
+  isDay: true,
+  dayCount: 1,
+  cycleTimer: 0,
+  totalCollected: 0,
+  unlockedAchievements: new Set()
+};
+
+// ============================================================
+// === MAĞAZA TİPLERİ (10 ÇEŞİT) ===
+// ============================================================
+const STORE_TYPES = [
+  // 1. kat
+  { name: 'Kafe',      icon: '☕', price: 50,   income: 2,  color: '#c97b4a', floor: 1 },
+  { name: 'Burger',    icon: '🍔', price: 100,  income: 4,  color: '#e8a020', floor: 1 },
+  { name: 'Fırın',     icon: '🥐', price: 180,  income: 7,  color: '#d4a76a', floor: 1 },
+  { name: 'Giyim',     icon: '👕', price: 300,  income: 12, color: '#4a7bc9', floor: 1 },
+  { name: 'Kitapçı',   icon: '📚', price: 450,  income: 18, color: '#8b6b4a', floor: 1 },
+  { name: 'Oyuncak',   icon: '🧸', price: 650,  income: 26, color: '#c94a8b', floor: 1 },
+  // 2. kat (lüks)
+  { name: 'Elektronik',icon: '💻', price: 900,  income: 38, color: '#555',    floor: 2 },
+  { name: 'Mücevher',  icon: '💎', price: 1500, income: 65, color: '#4ac9c9', floor: 2 },
+  { name: 'Spor',      icon: '⚽', price: 2200, income: 95, color: '#2a8b4a', floor: 2 },
+  { name: 'Sinema',    icon: '🎬', price: 3500, income: 150,color: '#8b2ac9', floor: 2 }
+];
+
+// ============================================================
+// === SLOT POZİSYONLARI ===
+// ============================================================
+const SLOTS = [12, 22, 32, 42, 52, 62, 72, 82, 92]; // 9 slot per kat
+
+// ============================================================
+// === SLOT OLUŞTURMA ===
+// ============================================================
+function createSlots() {
+  [1, 2].forEach(floor => {
+    SLOTS.forEach((x, i) => {
+      const slot = document.createElement('div');
+      slot.className = 'store locked';
+      slot.dataset.floor = floor;
+      slot.dataset.index = i;
+      slot.style.left = x + '%';
+      slot.style.bottom = '20px';
+      slot.innerHTML = `<div class="icon">🔒</div><div class="price">$${getSlotPrice(floor)}</div>`;
+      slot.addEventListener('click', () => handleSlotClick(floor, i));
+      document.getElementById(floor === 1 ? 'floor1' : 'floor2').appendChild(slot);
+      
+      state.stores.push({
+        floor, index: i, x, owned: false, type: null, level: 0, element: slot
+      });
+    });
+  });
+}
+
+function getSlotPrice(floor) {
+  const ownedCount = state.stores.filter(s => s.floor === floor && s.owned).length;
+  const base = floor === 1 ? 80 : 400;
+  return base + ownedCount * 100;
+}
+
+// ============================================================
+// === SLOT TIKLAMA ===
+// ============================================================
+function handleSlotClick(floor, index) {
+  Sounds.click();
+  const store = state.stores.find(s => s.floor === floor && s.index === index);
+  if (!store) return;
+  
+  if (floor === 2 && state.floor === 1) {
+    showNotification('⚠️ Önce asansörle 2. kata çık!');
+    Sounds.error();
+    return;
+  }
+  
+  if (!store.owned) {
+    // Mağaza seçim modalı
+    openStoreModal(store, floor);
+  } else {
+    state.currentStore = store;
+    document.getElementById('upgradeBtn').disabled = false;
+    updateUpgradeButton();
+    showNotification(`🏬 ${store.type.name} (Lv.${store.level}) seçildi`);
+  }
+}
+
+// ============================================================
+// === MAĞAZA SEÇİM MODALI ===
+// ============================================================
+function openStoreModal(store, floor) {
+  const modal = document.getElementById('storeModal');
+  const options = document.getElementById('storeOptions');
+  options.innerHTML = '';
+  
+  const available = STORE_TYPES.filter(t => t.floor === floor);
+  const slotPrice = getSlotPrice(floor);
+  
+  available.forEach(type => {
+    const canAfford = state.money >= slotPrice;
+    const btn = document.createElement('button');
+    btn.className = 'store-option';
+    btn.disabled = !canAfford;
+    btn.innerHTML = `
+      <div class="so-icon">${type.icon}</div>
+      <div class="so-name">${type.name}</div>
+      <div class="so-price">$${slotPrice}</div>
+      <div class="so-income">+$${type.income}/sn</div>
+    `;
+    btn.addEventListener('click', () => {
+      if (state.money < slotPrice) { Sounds.error(); return; }
+      state.money -= slotPrice;
+      buyStore(store, type);
+      closeModal();
+      updateHUD();
+    });
+    options.appendChild(btn);
+  });
+  
+  modal.classList.add('show');
+  modal._store = store;
+}
+
+function closeModal() {
+  document.getElementById('storeModal').classList.remove('show');
+}
+document.getElementById('closeModal').addEventListener('click', () => { Sounds.click(); closeModal(); });
+
+function buyStore(store, type) {
+  store.owned = true;
+  store.type = { ...type };
+  store.level = 1;
+  
+  const el = store.element;
+  el.className = 'store owned';
+  el.style.background = `linear-gradient(180deg, ${type.color}, ${type.color}cc)`;
+  el.innerHTML = `
+    <div class="level-badge">Lv.1</div>
+    <div class="icon">${type.icon}</div>
+    <div class="store-name">${type.name}</div>
+    <div class="price" style="color:#000">+$${type.income}/sn</div>
+  `;
+  
+  Sounds.buy();
+  showNotification(`✅ ${type.name} açıldı!`);
+  recalcIncome();
+  checkQuests();
+  checkAchievements();
+}
+
+// ============================================================
+// === YÜKSELTME ===
+// ============================================================
+function updateUpgradeButton() {
+  const btn = document.getElementById('upgradeBtn');
+  const store = state.currentStore;
+  if (!store || !store.owned) { btn.disabled = true; btn.textContent = '⬆️ Yükselt'; return; }
+  const cost = Math.floor(store.type.price * 0.7 * store.level);
+  btn.textContent = `⬆️ Yükselt ($${cost})`;
+  btn.disabled = state.money < cost;
+}
+
+document.getElementById('upgradeBtn').addEventListener('click', () => {
+  const store = state.currentStore;
+  if (!store || !store.owned) return;
+  const cost = Math.floor(store.type.price * 0.7 * store.level);
+  if (state.money < cost) { Sounds.error(); return; }
+  
+  state.money -= cost;
+  store.level++;
+  store.type.income = Math.floor(store.type.income * 1.4);
+  
+  const badge = store.element.querySelector('.level-badge');
+  if (badge) badge.textContent = `Lv.${store.level}`;
+  const priceEl = store.element.querySelector('.price');
+  if (priceEl) priceEl.textContent = `+$${store.type.income}/sn`;
+  store.element.style.transform = 'scale(1.2)';
+  setTimeout(() => store.element.style.transform = '', 200);
+  
+  Sounds.upgrade();
+  showNotification(`⬆️ ${store.type.name} → Lv.${store.level}`);
+  recalcIncome();
+  updateUpgradeButton();
+  updateHUD();
+  checkQuests();
+  checkAchievements();
+});
+
+// ============================================================
+// === GELİR ===
+// ============================================================
+function recalcIncome() {
+  state.incomePerSec = state.stores
+    .filter(s => s.owned && s.type)
+    .reduce((sum, s) => sum + s.type.income, 0);
+}
+
+document.getElementById('collectBtn').addEventListener('click', () => {
+  const collected = Math.floor(state.accumulated);
+  if (collected <= 0) {
+    showNotification('💤 Henüz gelir birikmedi...');
+    Sounds.error();
+    return;
+  }
+  state.money += collected;
+  state.totalEarned += collected;
+  state.totalCollected += collected;
+  state.accumulated = 0;
+  Sounds.collect();
+  showNotification(`💵 +$${collected} toplandı!`);
+  updateHUD();
+  
+  const rect = document.getElementById('collectBtn').getBoundingClientRect();
+  for (let i = 0; i < 6; i++) spawnCoin(rect.left + rect.width/2, rect.top);
+  
+  checkQuests();
+  checkAchievements();
+});
+
+function spawnCoin(x, y) {
+  const coin = document.createElement('div');
+  coin.className = 'coin-fly';
+  coin.textContent = '💰';
+  coin.style.left = (x + (Math.random() * 80 - 40)) + 'px';
+  coin.style.top = y + 'px';
+  document.body.appendChild(coin);
+  setTimeout(() => coin.remove(), 1200);
+}
+
+// ============================================================
+// === ASANSÖR ===
+// ============================================================
+const elevatorCar = document.getElementById('elevatorCar');
+function updateElevator() {
+  elevatorCar.style.bottom = state.floor === 1 ? '5%' : '52%';
+  elevatorCar.textContent = state.floor === 1 ? '🧍' : '🧍';
+}
+updateElevator();
+
+document.getElementById('btnUp').addEventListener('click', () => {
+  if (state.floor === 2) return;
+  state.floor = 2;
+  elevatorCar.textContent = '🧍⬆️';
+  updateElevator();
+  Sounds.elevator();
+  document.getElementById('btnUp').disabled = true;
+  document.getElementById('btnDown').disabled = false;
+  setTimeout(() => {
+    showNotification('🏢 2. kata çıktın - Lüks mağazalar!');
+    elevatorCar.textContent = '🧍';
+  }, 1200);
+});
+
+document.getElementById('btnDown').addEventListener('click', () => {
+  if (state.floor === 1) return;
+  state.floor = 1;
+  elevatorCar.textContent = '🧍⬇️';
+  updateElevator();
+  Sounds.elevator();
+  document.getElementById('btnUp').disabled = false;
+  document.getElementById('btnDown').disabled = true;
+  setTimeout(() => {
+    showNotification('🏢 1. kata indin');
+    elevatorCar.textContent = '🧍';
+  }, 1200);
+});
+
+// ============================================================
+// === NPC MÜŞTERİLER ===
+// ============================================================
+const NPC_COLORS = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf', '#ff8b94', '#c7ceea', '#ffd3b6', '#b5ead7'];
+
+function spawnNPC() {
+  if (state.stores.filter(s => s.owned).length === 0) return;
+  
+  const npc = document.createElement('div');
+  npc.className = 'npc';
+  
+  const skinTone = ['#fdbcb4', '#d4a373', '#8b5a2b', '#f5deb3'][Math.floor(Math.random()*4)];
+  const bodyColor = NPC_COLORS[Math.floor(Math.random()*NPC_COLORS.length)];
+  
+  npc.innerHTML = `
+    <div class="head" style="background:${skinTone}"></div>
+    <div class="body" style="background:${bodyColor}"></div>
+    <div class="feet"><div></div><div></div></div>
+  `;
+  
+  const floor = Math.random() < 0.6 ? 1 : 2;
+  const ownedStores = state.stores.filter(s => s.owned && s.floor === floor);
+  if (ownedStores.length === 0) return;
+  
+  const target = ownedStores[Math.floor(Math.random()*ownedStores.length)];
+  const startX = Math.random() < 0.5 ? -30 : window.innerWidth + 10;
+  const yPos = floor === 1 ? 'calc(50% + 40px)' : '40px';
+  
+  npc.style.left = startX + 'px';
+  npc.style.top = yPos;
+  document.body.appendChild(npc);
+  
+  // Hedefe yürü
+  requestAnimationFrame(() => {
+    const targetX = (window.innerWidth * target.x / 100) - 40;
+    npc.style.left = targetX + 'px';
+    npc.style.transition = 'left ' + (3 + Math.random()*2) + 's linear';
+  });
+  
+  // Hedefe varınca bekle, sonra çık
+  setTimeout(() => {
+    npc.style.opacity = '0';
+    setTimeout(() => npc.remove(), 500);
+  }, 5000);
+}
+
+setInterval(spawnNPC, 2000);
+
+// ============================================================
+// === GECE/GÜNDÜZ DÖNGÜSÜ ===
+// ============================================================
+const skyEl = document.getElementById('sky');
+const sunMoon = document.getElementById('sunMoon');
+const dayTimeEl = document.getElementById('daytime');
+
+// Yıldızlar
+for (let i = 0; i < 60; i++) {
+  const star = document.createElement('div');
+  star.className = 'star';
+  star.style.left = Math.random() * 100 + '%';
+  star.style.top = Math.random() * 60 + '%';
+  star.style.animationDelay = Math.random() * 2 + 's';
+  document.body.appendChild(star);
+}
+
+function toggleDayNight() {
+  state.isDay = !state.isDay;
+  if (state.isDay) {
+    state.dayCount++;
+    skyEl.classList.remove('night');
+    sunMoon.classList.remove('moon');
+    sunMoon.textContent = '☀️';
+    sunMoon.style.background = 'radial-gradient(circle, #ffeb3b, #ff9800)';
+    dayTimeEl.textContent = `☀️ Gündüz ${state.dayCount}`;
+    Sounds.day();
+    showNotification(`☀️ Gün ${state.dayCount} başladı!`);
+  } else {
+    skyEl.classList.add('night');
+    sunMoon.classList.add('moon');
+    sunMoon.textContent = '🌙';
+    sunMoon.style.background = 'radial-gradient(circle, #f0f0f0, #888)';
+    dayTimeEl.textContent = `🌙 Gece ${state.dayCount}`;
+    Sounds.night();
+    showNotification('🌙 Gece oldu - dinlenme vakti!');
+  }
+}
+
+// 45 saniyede bir gece-gündüz
+setInterval(toggleDayNight, 45000);
+
+// ============================================================
+// === GÖREVLER ===
+// ============================================================
+const quests = [
+  { id: 'q1', text: 'İlk mağazanı aç',           target: 1,  progress: () => state.stores.filter(s=>s.owned).length, reward: 50 },
+  { id: 'q2', text: '3 mağaza aç',               target: 3,  progress: () => state.stores.filter(s=>s.owned).length, reward: 200 },
+  { id: 'q3', text: '$500 topla',                target: 500,progress: () => state.totalCollected, reward: 100 },
+  { id: 'q4', text: 'Bir mağazayı Lv.3 yap',     target: 1,  progress: () => state.stores.filter(s=>s.level>=3).length, reward: 300 },
+  { id: 'q5', text: '2. kata çık',               target: 1,  progress: () => state.floor === 2 ? 1 : 0, reward: 150 },
+  { id: 'q6', text: '6 mağaza aç',               target: 6,  progress: () => state.stores.filter(s=>s.owned).length, reward: 500 },
+  { id: 'q7', text: '$2000 topla',               target: 2000,progress: () => state.totalCollected, reward: 400 },
+  { id: 'q8', text: 'Tüm mağaza tiplerini aç',   target: 10, progress: () => new Set(state.stores.filter(s=>s.owned).map(s=>s.type.name)).size, reward: 1000 },
+];
+
+const completedQuests = new Set();
+
+function renderQuests() {
+  const list = document.getElementById('questList');
+  list.innerHTML = '';
+  quests.forEach(q => {
+    const prog = Math.min(q.progress(), q.target);
+    const done = prog >= q.target;
+    const div = document.createElement('div');
+    div.className = 'quest' + (done ? ' done' : '');
+    div.innerHTML = `
+      ${done ? '✅' : '⬜'} ${q.text} ${done ? '' : `(${prog}/${q.target})`}
+      ${done ? '' : `<div class="progress-bar"><div style="width:${(prog/q.target)*100}%"></div></div>`}
+    `;
+    list.appendChild(div);
+  });
+}
+
+function checkQuests() {
+  quests.forEach(q => {
+    if (completedQuests.has(q.id)) return;
+    if (q.progress() >= q.target) {
+      completedQuests.add(q.id);
+      state.money += q.reward;
+      Sounds.quest();
+      showNotification(`🎯 Görev tamamlandı: ${q.text} (+$${q.reward})`);
+      updateHUD();
+    }
+  });
+  renderQuests();
+}
+
+// ============================================================
+// === BAŞARIMLAR ===
+// ============================================================
+const achievements = [
+  { id: 'a1', icon: '🏪', text: 'İlk Mağaza',       check: () => state.stores.filter(s=>s.owned).length >= 1 },
+  { id: 'a2', icon: '🏬', text: '5 Mağaza',          check: () => state.stores.filter(s=>s.owned).length >= 5 },
+  { id: 'a3', icon: '🏢', text: '10 Mağaza',         check: () => state.stores.filter(s=>s.owned).length >= 10 },
+  { id: 'a4', icon: '💰', text: '$1000 Kazan',       check: () => state.totalEarned >= 1000 },
+  { id: 'a5', icon: '💎', text: '$5000 Kazan',       check: () => state.totalEarned >= 5000 },
+  { id: 'a6', icon: '⬆️', text: 'Lv.5 Mağaza',       check: () => state.stores.some(s=>s.level>=5) },
+  { id: 'a7', icon: '🛗', text: 'Asansör Ustası',    check: () => state.floor === 2 && state.stores.filter(s=>s.floor===2&&s.owned).length >= 1 },
+  { id: 'a8', icon: '🌙', text: 'Gece Kuşu',         check: () => state.dayCount >= 2 },
+];
+
+function renderAchievements() {
+  const el = document.getElementById('achievements');
+  el.innerHTML = '';
+  achievements.forEach(a => {
+    const badge = document.createElement('span');
+    badge.className = 'ach-badge' + (state.unlockedAchievements.has(a.id) ? ' unlocked' : '');
+    badge.textContent = a.icon;
+    badge.title = a.text + (state.unlockedAchievements.has(a.id) ? ' ✅' : ' 🔒');
+    el.appendChild(badge);
+  });
+}
+
+function checkAchievements() {
+  achievements.forEach(a => {
+    if (state.unlockedAchievements.has(a.id)) return;
+    if (a.check()) {
+      state.unlockedAchievements.add(a.id);
+      Sounds.achievement();
+      showNotification(`🏆 Başarım: ${a.text}!`);
+      renderAchievements();
+    }
+  });
+}
+
+// ============================================================
+// === HUD ===
+// ============================================================
+function updateHUD() {
+  document.getElementById('money').textContent = '$' + Math.floor(state.money);
+  document.getElementById('income').textContent = '+$' + state.incomePerSec + '/sn';
+  updateUpgradeButton();
+}
+
+// ============================================================
+// === BİLDİRİM ===
+// ============================================================
+let notifTimer = null;
+function showNotification(text) {
+  const n = document.getElementById('notif');
+  n.textContent = text;
+  n.classList.add('show');
+  clearTimeout(notifTimer);
+  notifTimer = setTimeout(() => n.classList.remove('show'), 1800);
+}
+
+// ============================================================
+// === OYUN DÖNGÜSÜ ===
+// ============================================================
+setInterval(() => {
+  if (state.incomePerSec > 0) {
+    state.accumulated += state.incomePerSec / 10;
+  }
+  updateHUD();
+}, 100);
+
+// Her saniye görev/başarım kontrolü
+setInterval(() => {
+  checkQuests();
+  checkAchievements();
+}, 2000);
+
+// ============================================================
+// === BAŞLAT ===
+// ============================================================
+createSlots();
+updateHUD();
+renderQuests();
+renderAchievements();
+sunMoon.textContent = '☀️';
+showNotification('🏬 Mall Tycoon Deluxe\'a Hoş Geldin!');
+
+console.log('%c Mall Tycoon Deluxe Yüklendi! ', 'background:#ffd700;color:#000;font-size:16px;padding:5px;');
+</script>
+</body>
+</html>
+```
+
+✅ Eklenen Tüm Özellikler
+
+Özellik Durum
+🔊 Ses efektleri (Web Audio API, dosyasız) ✅ Satın alma, yükseltme, toplama, asansör, gece/gündüz, başarım, görev sesleri
+🛗 Asansör animasyonu ✅ Karakter yukarı/aşağı hareket ediyor, 1.2sn animasyon
+👥 NPC müşteriler ✅ 2 saniyede bir mağazalara yürüyor, sonra kayboluyor
+🏆 Başarımlar ✅ 8 başarım, üst ortada rozet olarak
+🎯 Görevler ✅ 8 görev, sol üstte ilerleme çubuğuyla
+🌙 Gece/gündüz döngüsü ✅ 45 saniyede bir, gökyüzü + güneş/ay + yıldızlar
+🏪 Daha fazla mağaza ✅ 10 tip: Kafe, Burger, Fırın, Giyim, Kitapçı, Oyuncak, Elektronik, Mücevher, Spor, Sinema
+
+🎮 Kontroller
+
+· Kilitli slota tıkla → Mağaza seçim modalı açılır
+· Açık mağazaya tıkla → Seç, "Yükselt" butonu aktifleşir
+· ▲ ▼ → Asansörle kat değiştir (sesli)
+· 💵 Gelir Topla → Biriken parayı topla
+· 🔊 → Ses aç/kapat
+· İptal → Mağaza seçimini kapat
+
+Tarayıcıda açtığında direkt çalışır. Ses için bir kere ekrana tıklaman yeterli (tarayıcı politikası). 
